@@ -1,11 +1,19 @@
 package com.lbconsulting.homework02_lorenbak;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.TimeZone;
+
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.Window;
+import android.widget.TextView;
 
 import com.example.homework02_lorenbak.R;
 
@@ -18,6 +26,7 @@ public class AlarmClockActivity extends Activity {
 	// String for logging the class name
 	public final String TAG = AlarmClockUtilities.TAG;
 	private final boolean L = AlarmClockUtilities.L; // enable Logging
+	private TextView txtTime = null;
 
 	// /////////////////////////////////////////////////////////////////////////////
 	// AlarmClockActivity skeleton
@@ -176,8 +185,22 @@ public class AlarmClockActivity extends Activity {
 	// /////////////////////////////////////////////////////////////////////////////
 
 	private void doCreate(Bundle savedInstanceState) {
+		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_alarm_clock);
+
+		this.txtTime = (TextView) findViewById(R.id.txtTime);
+		this.ShowTime(txtTime, Calendar.getInstance().getTimeInMillis());
+		/*Typeface face = Typeface.createFromAsset(getAssets(), "fonts/iceland.ttf");
+		txtTime.setTypeface(face);*/
+
 		// TODO Auto-generated method stub
+
+		this.txtTime.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View viewIn) {
+				ShowTime(txtTime, Calendar.getInstance().getTimeInMillis());
+			}
+		});
 
 	} // End doCreate
 
@@ -188,4 +211,16 @@ public class AlarmClockActivity extends Activity {
 		return true;
 	}
 
+	private void ShowTime(TextView txtView, long timeInMillis) {
+		txtView.setText(formatDateTime(timeInMillis));
+	}
+
+	private String formatDateTime(long timeToFormatInMilliseconds) {
+
+		SimpleDateFormat formatter = new SimpleDateFormat("h:mm:ss a");
+
+		formatter.setTimeZone(TimeZone.getDefault());
+		String currentTime = formatter.format(timeToFormatInMilliseconds);
+		return currentTime;
+	}
 }

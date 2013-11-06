@@ -3,17 +3,21 @@ package com.lbconsulting.homework02_lorenbak;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
+import android.preference.PreferenceFragment;
 import android.util.Log;
 import android.view.Menu;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.Window;
+import android.view.MenuItem;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.homework02_lorenbak.R;
 
@@ -26,7 +30,11 @@ public class AlarmClockActivity extends Activity {
 	// String for logging the class name
 	public final String TAG = AlarmClockUtilities.TAG;
 	private final boolean L = AlarmClockUtilities.L; // enable Logging
+	private boolean verbose = true;
 	private TextView txtTime = null;
+	final Handler timerHandler = new Handler();
+	private String nextTime = "";
+	private long nextTimeValue;
 
 	// /////////////////////////////////////////////////////////////////////////////
 	// AlarmClockActivity skeleton
@@ -185,24 +193,57 @@ public class AlarmClockActivity extends Activity {
 	// /////////////////////////////////////////////////////////////////////////////
 
 	private void doCreate(Bundle savedInstanceState) {
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+		/*this.requestWindowFeature(Window.FEATURE_NO_TITLE);*/
 		setContentView(R.layout.activity_alarm_clock);
+		/*PreferenceManager.setDefaultValues(this, R.xml.preferences, false);*/
 
 		this.txtTime = (TextView) findViewById(R.id.txtTime);
-		this.ShowTime(txtTime, Calendar.getInstance().getTimeInMillis());
+		this.txtTime.setTextColor(this.getResources().getColor(R.color.white));
+
 		/*Typeface face = Typeface.createFromAsset(getAssets(), "fonts/iceland.ttf");
 		txtTime.setTypeface(face);*/
 
-		// TODO Auto-generated method stub
+		Timer myTimer = new Timer();
+		nextTimeValue = Calendar.getInstance().getTimeInMillis();
+		nextTimeValue += 1000;
+		nextTime = getTime(nextTimeValue);
 
-		this.txtTime.setOnClickListener(new OnClickListener() {
+		myTimer.schedule(new TimerTask() {
 			@Override
-			public void onClick(View viewIn) {
-				ShowTime(txtTime, Calendar.getInstance().getTimeInMillis());
+			public void run() {
+				UpdateGUI();
 			}
-		});
+		}, 0, 1000);
 
 	} // End doCreate
+
+	private void UpdateGUI() {
+		timerHandler.post(myRunnable);
+	}
+
+	final Runnable myRunnable = new Runnable() {
+		public void run() {
+			txtTime.setText(nextTime);
+			nextTimeValue += 1000;
+			nextTime = getTime(nextTimeValue);
+		}
+
+	};
+
+	private String getTime(long timeInMillis) {
+		return formatDateTime(timeInMillis);
+	}
+
+	//}
+
+	/*		this.txtTime.setOnClickListener(new OnClickListener() {
+				@Override
+				public void onClick(View viewIn) {
+					ShowTime(txtTime, Calendar.getInstance().getTimeInMillis());
+				}
+			});*/
+
+	//} // End doCreate
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -211,9 +252,41 @@ public class AlarmClockActivity extends Activity {
 		return true;
 	}
 
-	private void ShowTime(TextView txtView, long timeInMillis) {
-		txtView.setText(formatDateTime(timeInMillis));
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		String msg = null;
+
+		switch (item.getItemId()) {
+
+		case R.id.setAlarmMenu:
+			// TODO code menu editActiveListTitle
+			msg = "Set Alarm Menu under construction.";
+			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+			return true;
+
+		case R.id.action_settings:
+			// TODO code menu masterListSettings
+			//			startActivity(new Intent(this, PrefsFragment.class));
+
+			Intent i = new Intent();
+			i.setClass(this, PrefsFragment.class);
+			startActivityForResult(i, 0);
+
+			/*Intent showContent = new Intent(getApplicationContext(), PrefsFragment.class);
+			startActivity(showContent);*/
+
+			/*msg = "Settings under construction.";
+			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();*/
+			return true;
+
+		default:
+			return super.onOptionsItemSelected(item);
+		}
 	}
+
+	/*	private void ShowTime(TextView txtView, long timeInMillis) {
+			txtView.setText(formatDateTime(timeInMillis));
+		}*/
 
 	private String formatDateTime(long timeToFormatInMilliseconds) {
 
@@ -223,4 +296,16 @@ public class AlarmClockActivity extends Activity {
 		String currentTime = formatter.format(timeToFormatInMilliseconds);
 		return currentTime;
 	}
+
+	public static class PrefsFragment extends PreferenceFragment {
+
+		@Override
+		public void onCreate(Bundle savedInstanceState) {
+			super.onCreate(savedInstanceState);
+
+			// Load the preferences from an XML resource
+			addPreferencesFromResource(R.xml.preferences);
+		}
+	}
+
 }

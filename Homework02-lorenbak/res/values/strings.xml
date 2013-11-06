@@ -4,5 +4,7 @@
     <string name="app_name">Homework02-lorenbak</string>
     <string name="action_settings">Settings</string>
     <string name="test_time">11:50:03 pm</string>
+    <string name="set_alarm">Set Alarm</string>
+    <string name="verbose">Verbose</string>
 
 </resources>

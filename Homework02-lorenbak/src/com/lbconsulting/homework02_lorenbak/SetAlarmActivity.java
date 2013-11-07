@@ -1,11 +1,14 @@
 package com.lbconsulting.homework02_lorenbak;
 
 import android.app.Activity;
+import android.app.DialogFragment;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
+import android.widget.Toast;
 
 import com.example.homework02_lorenbak.R;
 
@@ -180,6 +183,40 @@ public class SetAlarmActivity extends Activity {
 		// TODO Auto-generated method stub
 
 	} // End doCreate
+
+	/*	public void setAlarmDate(View view) {
+			// Do something in response to button click
+			String msg = "Alarm Date View click.";
+			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+		}
+
+		public void setAlarmTime(View view) {
+			// Do something in response to button click
+			String msg = "Alarm Time View click.";
+			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+		}*/
+
+	public void showDatePickerDialog(View v) {
+		DialogFragment newFragment = new DatePickerFragment();
+		newFragment.show(getFragmentManager(), "datePicker");
+	}
+
+	public void showTimePickerDialog(View v) {
+		DialogFragment newFragment = new TimePickerFragment();
+		newFragment.show(getFragmentManager(), "timePicker");
+	}
+
+	public void startAlarmTimer(View view) {
+		// Do something in response to button click
+		String msg = "Start Button click.";
+		Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+	}
+
+	public void stopAlarmTimer(View view) {
+		// Do something in response to button click
+		String msg = "Stop Button click.";
+		Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {

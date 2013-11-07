@@ -260,23 +260,23 @@ public class AlarmClockActivity extends Activity {
 
 		case R.id.setAlarmMenu:
 			// TODO code menu editActiveListTitle
-			msg = "Set Alarm Menu under construction.";
-			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+			/*msg = "Set Alarm Menu under construction.";
+			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();*/
+
+			Intent setAlarmActivityIntent = new Intent(AlarmClockActivity.this, SetAlarmActivity.class);
+			/*
+			 * setAlarmActivityIntent.putExtra("key", value); //Optional
+			 * parameters
+			 */
+			AlarmClockActivity.this.startActivity(setAlarmActivityIntent);
+
 			return true;
 
 		case R.id.action_settings:
 			// TODO code menu masterListSettings
-			//			startActivity(new Intent(this, PrefsFragment.class));
 
-			Intent i = new Intent();
-			i.setClass(this, PrefsFragment.class);
-			startActivityForResult(i, 0);
-
-			/*Intent showContent = new Intent(getApplicationContext(), PrefsFragment.class);
-			startActivity(showContent);*/
-
-			/*msg = "Settings under construction.";
-			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();*/
+			msg = "Settings under construction.";
+			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
 			return true;
 
 		default:

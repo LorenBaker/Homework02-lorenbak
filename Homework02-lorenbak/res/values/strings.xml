@@ -6,5 +6,11 @@
     <string name="test_time">11:50:03 pm</string>
     <string name="set_alarm">Set Alarm</string>
     <string name="verbose">Verbose</string>
+    <string name="alarm_countdown">12:34:22</string>
+    <string name="alarm_date">November 5, 2013</string>
+    <string name="alarm_time">11:20:32 am</string>
+    <string name="alarm_start">Start</string>
+    <string name="alarm_stop">Stop</string>
+    <string name="alarm_date_time_header">Alarm date and time:</string>
 
 </resources>

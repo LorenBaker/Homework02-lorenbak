@@ -1,5 +1,9 @@
 package com.lbconsulting.homework02_lorenbak;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+
 import android.app.Activity;
 import android.app.DialogFragment;
 import android.content.SharedPreferences;
@@ -8,11 +12,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.homework02_lorenbak.R;
+import com.lbconsulting.homework02_lorenbak.DatePickerFragment.DatePicker;
+import com.lbconsulting.homework02_lorenbak.TimePickerFragment.TimePicker;
 
-public class SetAlarmActivity extends Activity {
+public class SetAlarmActivity extends Activity implements DatePicker, TimePicker {
 
 	// /////////////////////////////////////////////////////////////////////////////
 	// AList Activity variables
@@ -21,6 +28,14 @@ public class SetAlarmActivity extends Activity {
 	// String for logging the class name
 	public final String TAG = AlarmClockUtilities.TAG;
 	private final boolean L = AlarmClockUtilities.L; // enable Logging
+
+	private TextView tvAlarmDate;
+	private TextView tvAlarmTime;
+	private TextView tvAlarmCountdown;
+
+	private Calendar calendarDate;
+	private Calendar calendarTime;
+	private Calendar calendarDateAndTime;
 
 	// /////////////////////////////////////////////////////////////////////////////
 	// SetAlarmActivity skeleton
@@ -180,7 +195,9 @@ public class SetAlarmActivity extends Activity {
 
 	private void doCreate(Bundle savedInstanceState) {
 		setContentView(R.layout.activity_set_alarm);
-		// TODO Auto-generated method stub
+		this.tvAlarmDate = (TextView) findViewById(R.id.tvAlarmDate);
+		this.tvAlarmTime = (TextView) findViewById(R.id.tvAlarmTime);
+		this.tvAlarmCountdown = (TextView) findViewById(R.id.tvAlarmCountdown);
 
 	} // End doCreate
 
@@ -223,6 +240,54 @@ public class SetAlarmActivity extends Activity {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.set_alarm, menu);
 		return true;
+	}
+
+	@Override
+	public void onDateSelected(Calendar cal) {
+		this.calendarDate = cal;
+		this.setDateAndTime();
+		SimpleDateFormat sdf = new SimpleDateFormat("MMMM d, yyyy", Locale.US);
+		String formattedDate = sdf.format(cal.getTime());
+		this.tvAlarmDate.setText(formattedDate);
+
+	}
+
+	@Override
+	public void onTimeSelected(Calendar cal) {
+		this.calendarTime = cal;
+		this.setDateAndTime();
+		SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss a", Locale.US);
+		String formattedDate = sdf.format(cal.getTime());
+		this.tvAlarmTime.setText(formattedDate);
+
+	}
+
+	//public final void set (int year, int month, int day, int hourOfDay, int minute, int second)
+	private void setDateAndTime() {
+
+		if (this.calendarDate == null) {
+			this.calendarDate = Calendar.getInstance();
+		}
+		if (this.calendarTime == null) {
+			this.calendarTime = Calendar.getInstance();
+			this.calendarTime.set(Calendar.HOUR_OF_DAY, 0);
+			this.calendarTime.set(Calendar.MINUTE, 0);
+			this.calendarTime.set(Calendar.SECOND, 0);
+		}
+
+		this.calendarDateAndTime = Calendar.getInstance();
+		this.calendarDateAndTime.set(
+				this.calendarDate.get(Calendar.YEAR),
+				this.calendarDate.get(Calendar.MONTH),
+				this.calendarDate.get(Calendar.DAY_OF_MONTH),
+				this.calendarTime.get(Calendar.HOUR_OF_DAY),
+				this.calendarTime.get(Calendar.MINUTE),
+				this.calendarTime.get(Calendar.SECOND)
+				);
+
+		SimpleDateFormat sdf = new SimpleDateFormat("MMMM d, yyyy  hh:mm:ss a", Locale.US);
+		String formattedDate = sdf.format(this.calendarDateAndTime.getTime());
+		this.tvAlarmCountdown.setText(formattedDate);
 	}
 
 }

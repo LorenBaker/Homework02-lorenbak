@@ -2,6 +2,7 @@ package com.lbconsulting.homework02_lorenbak;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -12,7 +13,6 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
-import android.preference.PreferenceFragment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -290,14 +290,14 @@ public class AlarmClockActivity extends Activity {
 
 	private String formatDateTime(long timeToFormatInMilliseconds) {
 
-		SimpleDateFormat formatter = new SimpleDateFormat("h:mm:ss a");
+		SimpleDateFormat formatter = new SimpleDateFormat("h:mm:ss a", Locale.US);
 
 		formatter.setTimeZone(TimeZone.getDefault());
 		String currentTime = formatter.format(timeToFormatInMilliseconds);
 		return currentTime;
 	}
 
-	public static class PrefsFragment extends PreferenceFragment {
+	/*public static class PrefsFragment extends PreferenceFragment {
 
 		@Override
 		public void onCreate(Bundle savedInstanceState) {
@@ -306,6 +306,6 @@ public class AlarmClockActivity extends Activity {
 			// Load the preferences from an XML resource
 			addPreferencesFromResource(R.xml.preferences);
 		}
-	}
+	}*/
 
 }

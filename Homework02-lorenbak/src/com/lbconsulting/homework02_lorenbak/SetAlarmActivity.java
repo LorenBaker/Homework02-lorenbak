@@ -3,12 +3,16 @@ package com.lbconsulting.homework02_lorenbak;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.app.Activity;
 import android.app.DialogFragment;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.Menu;
@@ -52,6 +56,14 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	private int minMinute;
 
 	private boolean alarmRunning = false;
+	private SimpleDateFormat sdfTime;
+	private SimpleDateFormat sdfDate;
+
+	private Timer myTimer;
+
+	final Handler timerHandler = new Handler();
+	private String nextAlarmCountdownText = "";
+	private long nextAlarmCountdownValueMills = -1;
 
 	// /////////////////////////////////////////////////////////////////////////////
 	// SetAlarmActivity skeleton
@@ -218,6 +230,11 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		this.tvAlarmTime = (TextView) findViewById(R.id.tvAlarmTime);
 		this.tvAlarmCountdown = (TextView) findViewById(R.id.tvAlarmCountdown);
 
+		this.sdfDate = new SimpleDateFormat("MMMM d, yyyy", Locale.US);
+		this.sdfDate.setTimeZone(TimeZone.getDefault());
+		this.sdfTime = new SimpleDateFormat("h:mm a", Locale.US);
+		this.sdfTime.setTimeZone(TimeZone.getDefault());
+
 		// Get the between instance stored values
 		SharedPreferences storedStates = getPreferences(MODE_PRIVATE);
 
@@ -240,12 +257,36 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		this.minute = alarmDateAndTime.get(Calendar.MINUTE);
 
 		this.setMinimumDatesAndTimes();
-		this.showCountdown(this.getAlarmCountdownText());
 
 		this.showDate();
 		this.showTime();
 
+		this.nextAlarmCountdownValueMills = this.millsAlarmDateAndTime - Calendar.getInstance().getTimeInMillis();
+		this.nextAlarmCountdownText = getAlarmCountdownText(this.nextAlarmCountdownValueMills);
+
+		if (this.alarmRunning) {
+			this.startTimer();
+		} else {
+			this.showCountdown(nextAlarmCountdownText);
+		}
+
 	} // End doCreate
+
+	private void UpdateGUI() {
+		timerHandler.post(myRunnable);
+	}
+
+	final Runnable myRunnable = new Runnable() {
+		public void run() {
+			showCountdown(nextAlarmCountdownText);
+			nextAlarmCountdownValueMills -= 1000;
+			if (nextAlarmCountdownValueMills < 0) {
+				stopTimer();
+			} else {
+				nextAlarmCountdownText = getAlarmCountdownText(nextAlarmCountdownValueMills);
+			}
+		}
+	};
 
 	public void showDatePickerDialog(View v) {
 		DialogFragment newFragment = new DatePickerFragment();
@@ -258,13 +299,32 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	}
 
 	public void startAlarmTimer(View view) {
-		this.alarmRunning = true;
-		this.showCountdown(getAlarmCountdownText());
+		this.startTimer();
 	}
 
 	public void stopAlarmTimer(View view) {
+		this.stopTimer();
+	}
+
+	private void startTimer() {
+		this.alarmRunning = true;
+		this.nextAlarmCountdownValueMills = this.millsAlarmDateAndTime - Calendar.getInstance().getTimeInMillis();
+		//nextAlarmCountdownValueMills -= 1000;
+		nextAlarmCountdownText = this.getAlarmCountdownText(nextAlarmCountdownValueMills);
+
+		myTimer = new Timer();
+		myTimer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				UpdateGUI();
+			}
+		}, 0, 1000);
+	}
+
+	private void stopTimer() {
+		this.myTimer.cancel();
 		this.alarmRunning = false;
-		this.showCountdown(getAlarmCountdownText());
+		this.showCountdown(this.getAlarmCountdownText(this.nextAlarmCountdownValueMills));
 	}
 
 	@Override
@@ -324,10 +384,9 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		}
 	}
 
-	private String getAlarmCountdownText() {
+	private String getAlarmCountdownText(long millsCountdownTime) {
 		String countDownString = "Alarm Not Running";
 		if (this.alarmRunning) {
-			long millsCountdownTime = this.millsAlarmDateAndTime - this.millsNow;
 			millsCountdownTime = (millsCountdownTime / 1000);
 
 			long x = millsCountdownTime;
@@ -361,6 +420,9 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 					countDownString =
 							String.valueOf(seconds) + "s";
 				}
+			} else {
+				// millsCountdownTime not > 0
+				countDownString = "0s";
 			}
 		}
 		return countDownString;
@@ -371,14 +433,12 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	}
 
 	private void showDate() {
-		SimpleDateFormat sdf = new SimpleDateFormat("MMMM d, yyyy", Locale.US);
-		String formattedDate = sdf.format(this.alarmDateAndTime.getTime());
+		String formattedDate = sdfDate.format(this.alarmDateAndTime.getTime());
 		this.tvAlarmDate.setText(formattedDate);
 	}
 
 	private void showTime() {
-		SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.US);
-		String formattedDate = sdf.format(this.alarmDateAndTime.getTime());
+		String formattedDate = this.sdfTime.format(this.alarmDateAndTime.getTime());
 		this.tvAlarmTime.setText(formattedDate);
 	}
 

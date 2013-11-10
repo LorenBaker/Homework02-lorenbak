@@ -291,7 +291,6 @@ public class AlarmClockActivity extends Activity {
 	private String formatDateTime(long timeToFormatInMilliseconds) {
 
 		SimpleDateFormat formatter = new SimpleDateFormat("h:mm:ss a", Locale.US);
-
 		formatter.setTimeZone(TimeZone.getDefault());
 		String currentTime = formatter.format(timeToFormatInMilliseconds);
 		return currentTime;

@@ -9,15 +9,16 @@ import android.app.DialogFragment;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.example.homework02_lorenbak.R;
 import com.lbconsulting.homework02_lorenbak.DatePickerFragment.DatePicker;
 import com.lbconsulting.homework02_lorenbak.TimePickerFragment.TimePicker;
+
+/*import com.example.homework02_lorenbak.R;*/
 
 public class SetAlarmActivity extends Activity implements DatePicker, TimePicker {
 
@@ -33,9 +34,24 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	private TextView tvAlarmTime;
 	private TextView tvAlarmCountdown;
 
-	private Calendar calendarDate;
-	private Calendar calendarTime;
-	private Calendar calendarDateAndTime;
+	private Calendar alarmDateAndTime;
+	private long millsAlarmDateAndTime;
+	private long millsNow;
+	// private long millsCountdownTime;
+
+	private int year;
+	private int month;
+	private int day_of_month;
+	private int hourOfDay;
+	private int minute;
+
+	private int minYear;
+	private int minMonth;
+	private int minDay_of_month;
+	private int minHourOfDay;
+	private int minMinute;
+
+	private boolean alarmRunning = false;
 
 	// /////////////////////////////////////////////////////////////////////////////
 	// SetAlarmActivity skeleton
@@ -92,6 +108,9 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		// Store values between instances here
 		SharedPreferences preferences = getPreferences(MODE_PRIVATE);
 		SharedPreferences.Editor applicationStates = preferences.edit();
+
+		applicationStates.putBoolean("alarmRunning", alarmRunning);
+		applicationStates.putLong("millsAlarmDateAndTime", millsAlarmDateAndTime);
 
 		// Commit to storage
 		applicationStates.commit();
@@ -199,19 +218,34 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		this.tvAlarmTime = (TextView) findViewById(R.id.tvAlarmTime);
 		this.tvAlarmCountdown = (TextView) findViewById(R.id.tvAlarmCountdown);
 
-	} // End doCreate
+		// Get the between instance stored values
+		SharedPreferences storedStates = getPreferences(MODE_PRIVATE);
 
-	/*	public void setAlarmDate(View view) {
-			// Do something in response to button click
-			String msg = "Alarm Date View click.";
-			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+		// Set application states
+		this.alarmRunning = storedStates.getBoolean("alarmRunning", false);
+		this.millsAlarmDateAndTime = storedStates.getLong("millsAlarmDateAndTime", -1);
+		this.alarmDateAndTime = Calendar.getInstance();
+
+		if (this.millsAlarmDateAndTime < 0) {
+			// first time run and millsAlarmDateAndTime set to it's default of -1		
+			this.millsAlarmDateAndTime = this.alarmDateAndTime.getTimeInMillis();
+		} else {
+			this.alarmDateAndTime.setTimeInMillis(this.millsAlarmDateAndTime);
 		}
 
-		public void setAlarmTime(View view) {
-			// Do something in response to button click
-			String msg = "Alarm Time View click.";
-			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
-		}*/
+		this.year = alarmDateAndTime.get(Calendar.YEAR);
+		this.month = alarmDateAndTime.get(Calendar.MONTH);
+		this.day_of_month = alarmDateAndTime.get(Calendar.DAY_OF_MONTH);
+		this.hourOfDay = alarmDateAndTime.get(Calendar.HOUR_OF_DAY);
+		this.minute = alarmDateAndTime.get(Calendar.MINUTE);
+
+		this.setMinimumDatesAndTimes();
+		this.showCountdown(this.getAlarmCountdownText());
+
+		this.showDate();
+		this.showTime();
+
+	} // End doCreate
 
 	public void showDatePickerDialog(View v) {
 		DialogFragment newFragment = new DatePickerFragment();
@@ -224,15 +258,13 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	}
 
 	public void startAlarmTimer(View view) {
-		// Do something in response to button click
-		String msg = "Start Button click.";
-		Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+		this.alarmRunning = true;
+		this.showCountdown(getAlarmCountdownText());
 	}
 
 	public void stopAlarmTimer(View view) {
-		// Do something in response to button click
-		String msg = "Stop Button click.";
-		Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+		this.alarmRunning = false;
+		this.showCountdown(getAlarmCountdownText());
 	}
 
 	@Override
@@ -243,51 +275,138 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	}
 
 	@Override
-	public void onDateSelected(Calendar cal) {
-		this.calendarDate = cal;
-		this.setDateAndTime();
-		SimpleDateFormat sdf = new SimpleDateFormat("MMMM d, yyyy", Locale.US);
-		String formattedDate = sdf.format(cal.getTime());
-		this.tvAlarmDate.setText(formattedDate);
+	public void onDateSelected(Bundle dateBundle) {
+		this.year = dateBundle.getInt("year");
+		this.month = dateBundle.getInt("month");
+		this.day_of_month = dateBundle.getInt("day_of_month");
+		this.setMinimumDatesAndTimes();
 
+		if (this.year < minYear) {
+			this.year = this.minYear;
+			this.month = this.minMonth;
+			this.day_of_month = this.minDay_of_month;
+			this.signalError();
+
+		} else if (month < minMonth && year == minYear) {
+			this.month = this.minMonth;
+			this.day_of_month = this.minDay_of_month;
+			this.signalError();
+
+		} else if (day_of_month < minDay_of_month && month == minMonth && year == minYear) {
+			this.day_of_month = this.minDay_of_month;
+			this.signalError();
+
+		} else {
+			this.setAlarmDateAndTime();
+			this.showDate();
+		}
 	}
 
 	@Override
-	public void onTimeSelected(Calendar cal) {
-		this.calendarTime = cal;
-		this.setDateAndTime();
-		SimpleDateFormat sdf = new SimpleDateFormat("hh:mm:ss a", Locale.US);
-		String formattedDate = sdf.format(cal.getTime());
+	public void onTimeSelected(Bundle timeBundle) {
+		this.hourOfDay = timeBundle.getInt("hourOfDay");
+		this.minute = timeBundle.getInt("minute");
+		this.setMinimumDatesAndTimes();
+
+		if (hourOfDay < minHourOfDay && day_of_month == minDay_of_month && month == minMonth && year == minYear) {
+			this.hourOfDay = this.minHourOfDay;
+			this.minute = this.minMinute;
+			this.signalError();
+
+		} else if (minute < minMinute && hourOfDay == minHourOfDay && day_of_month == minDay_of_month
+				&& month == minMonth && year == minYear) {
+			this.minute = this.minMinute;
+			this.signalError();
+
+		} else {
+			this.setAlarmDateAndTime();
+			this.showTime();
+		}
+	}
+
+	private String getAlarmCountdownText() {
+		String countDownString = "Alarm Not Running";
+		if (this.alarmRunning) {
+			long millsCountdownTime = this.millsAlarmDateAndTime - this.millsNow;
+			millsCountdownTime = (millsCountdownTime / 1000);
+
+			long x = millsCountdownTime;
+			long seconds = x % 60;
+			x /= 60;
+			long minutes = x % 60;
+			x /= 60;
+			long hours = x % 24;
+			x /= 24;
+			long days = x;
+
+			if (millsCountdownTime > 0) {
+
+				if (days > 0) {
+					countDownString =
+							String.valueOf(days) + "d: "
+									+ String.valueOf(hours) + "h: "
+									+ String.valueOf(minutes) + "m: "
+									+ String.valueOf(seconds) + "s";
+				} else if (hours > 0) {
+					countDownString =
+							String.valueOf(hours) + "h: "
+									+ String.valueOf(minutes) + "m: "
+									+ String.valueOf(seconds) + "s";
+
+				} else if (minutes > 0) {
+					countDownString =
+							String.valueOf(minutes) + "m: "
+									+ String.valueOf(seconds) + "s";
+				} else {
+					countDownString =
+							String.valueOf(seconds) + "s";
+				}
+			}
+		}
+		return countDownString;
+	}
+
+	private void showCountdown(String countDownText) {
+		this.tvAlarmCountdown.setText(countDownText);
+	}
+
+	private void showDate() {
+		SimpleDateFormat sdf = new SimpleDateFormat("MMMM d, yyyy", Locale.US);
+		String formattedDate = sdf.format(this.alarmDateAndTime.getTime());
+		this.tvAlarmDate.setText(formattedDate);
+	}
+
+	private void showTime() {
+		SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.US);
+		String formattedDate = sdf.format(this.alarmDateAndTime.getTime());
 		this.tvAlarmTime.setText(formattedDate);
-
 	}
 
-	//public final void set (int year, int month, int day, int hourOfDay, int minute, int second)
-	private void setDateAndTime() {
-
-		if (this.calendarDate == null) {
-			this.calendarDate = Calendar.getInstance();
-		}
-		if (this.calendarTime == null) {
-			this.calendarTime = Calendar.getInstance();
-			this.calendarTime.set(Calendar.HOUR_OF_DAY, 0);
-			this.calendarTime.set(Calendar.MINUTE, 0);
-			this.calendarTime.set(Calendar.SECOND, 0);
-		}
-
-		this.calendarDateAndTime = Calendar.getInstance();
-		this.calendarDateAndTime.set(
-				this.calendarDate.get(Calendar.YEAR),
-				this.calendarDate.get(Calendar.MONTH),
-				this.calendarDate.get(Calendar.DAY_OF_MONTH),
-				this.calendarTime.get(Calendar.HOUR_OF_DAY),
-				this.calendarTime.get(Calendar.MINUTE),
-				this.calendarTime.get(Calendar.SECOND)
+	private void setAlarmDateAndTime() {
+		this.alarmDateAndTime.set(
+				this.year,
+				this.month,
+				this.day_of_month,
+				this.hourOfDay,
+				this.minute,
+				0
 				);
-
-		SimpleDateFormat sdf = new SimpleDateFormat("MMMM d, yyyy  hh:mm:ss a", Locale.US);
-		String formattedDate = sdf.format(this.calendarDateAndTime.getTime());
-		this.tvAlarmCountdown.setText(formattedDate);
+		this.millsAlarmDateAndTime = this.alarmDateAndTime.getTimeInMillis();
 	}
 
+	private void setMinimumDatesAndTimes() {
+		Calendar calendarNow = Calendar.getInstance();
+		this.millsNow = calendarNow.getTimeInMillis();
+		this.minYear = calendarNow.get(Calendar.YEAR);
+		this.minMonth = calendarNow.get(Calendar.MONTH);
+		this.minDay_of_month = calendarNow.get(Calendar.DAY_OF_MONTH);
+		this.minHourOfDay = calendarNow.get(Calendar.HOUR_OF_DAY);
+		this.minMinute = calendarNow.get(Calendar.MINUTE);
+	}
+
+	private void signalError() {
+		Vibrator v = (Vibrator) getSystemService(SetAlarmActivity.VIBRATOR_SERVICE);
+		// Vibrate for 500 milliseconds
+		v.vibrate(500);
+	}
 }

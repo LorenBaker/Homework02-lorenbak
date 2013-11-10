@@ -11,10 +11,10 @@ public class DatePickerFragment extends DialogFragment
 		implements DatePickerDialog.OnDateSetListener {
 
 	public interface DatePicker {
-		public void onDateSelected(Calendar date);
+		public void onDateSelected(Bundle dateBundle);
 	}
 
-	DatePicker dateSelection;
+	private DatePicker dateSelection;
 
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -27,16 +27,21 @@ public class DatePickerFragment extends DialogFragment
 		dateSelection = (DatePicker) getActivity();
 
 		// Create a new instance of DatePickerDialog and return it
+		/*datePicker.setMinDate(System.currentTimeMillis() - 1000);*/
 		return new DatePickerDialog(getActivity(), this, year, month, day);
 	}
 
 	@Override
-	public void onDateSet(android.widget.DatePicker view, int year, int month, int day) {
-		Calendar c = Calendar.getInstance();
-		c.set(year, month, day);
+	public void onDateSet(android.widget.DatePicker view, int year, int month, int day_of_month) {
+
+		Bundle dateBundle = new Bundle(3);
+		dateBundle.putInt("year", year);
+		dateBundle.putInt("month", month);
+		dateBundle.putInt("day_of_month", day_of_month);
+
 		if (dateSelection != null)
 		{
-			dateSelection.onDateSelected(c);
+			dateSelection.onDateSelected(dateBundle);
 		}
 	}
 }

@@ -19,7 +19,7 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.homework02_lorenbak.R;
+/*import com.example.homework02_lorenbak.R;*/
 
 public class AlarmClockActivity extends Activity {
 

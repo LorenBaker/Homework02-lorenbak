@@ -12,7 +12,7 @@ public class TimePickerFragment extends DialogFragment
 		implements TimePickerDialog.OnTimeSetListener {
 
 	public interface TimePicker {
-		public void onTimeSelected(Calendar date);
+		public void onTimeSelected(Bundle timeBundle);
 	}
 
 	TimePicker timeSelection;
@@ -37,13 +37,13 @@ public class TimePickerFragment extends DialogFragment
 
 	@Override
 	public void onTimeSet(android.widget.TimePicker view, int hourOfDay, int minute) {
-		Calendar c = Calendar.getInstance();
-		c.set(Calendar.HOUR, hourOfDay);
-		c.set(Calendar.MINUTE, minute);
-		c.set(Calendar.SECOND, 0);
+		Bundle timeBundle = new Bundle(2);
+		timeBundle.putInt("hourOfDay", hourOfDay);
+		timeBundle.putInt("minute", minute);
+
 		if (timeSelection != null)
 		{
-			timeSelection.onTimeSelected(c);
+			timeSelection.onTimeSelected(timeBundle);
 		}
 	}
 }

@@ -1,9 +1,6 @@
 package com.lbconsulting.homework02_lorenbak;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Locale;
-import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -56,8 +53,8 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	private int minMinute;
 
 	private boolean alarmRunning = false;
-	private SimpleDateFormat sdfTime;
-	private SimpleDateFormat sdfDate;
+	/*private SimpleDateFormat sdfTime;*/
+	/*private SimpleDateFormat sdfDate;*/
 
 	private Timer myTimer;
 
@@ -118,7 +115,7 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 			Log.i(TAG, "SetAlarmActivity onPause" + (isFinishing() ? " Finishing" : ""));
 
 		// Store values between instances here
-		SharedPreferences preferences = getPreferences(MODE_PRIVATE);
+		SharedPreferences preferences = getSharedPreferences("AlarmClock", MODE_PRIVATE);
 		SharedPreferences.Editor applicationStates = preferences.edit();
 
 		applicationStates.putBoolean("alarmRunning", alarmRunning);
@@ -126,7 +123,7 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 
 		// Commit to storage
 		applicationStates.commit();
-		/*- See more at: http://eigo.co.uk/labs/managing-state-in-an-android-activity/#sthash.13x5kIOB.dpuf*/
+
 	}
 
 	@Override
@@ -230,13 +227,8 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		this.tvAlarmTime = (TextView) findViewById(R.id.tvAlarmTime);
 		this.tvAlarmCountdown = (TextView) findViewById(R.id.tvAlarmCountdown);
 
-		this.sdfDate = new SimpleDateFormat("MMMM d, yyyy", Locale.US);
-		this.sdfDate.setTimeZone(TimeZone.getDefault());
-		this.sdfTime = new SimpleDateFormat("h:mm a", Locale.US);
-		this.sdfTime.setTimeZone(TimeZone.getDefault());
-
 		// Get the between instance stored values
-		SharedPreferences storedStates = getPreferences(MODE_PRIVATE);
+		SharedPreferences storedStates = getSharedPreferences("AlarmClock", MODE_PRIVATE);
 
 		// Set application states
 		this.alarmRunning = storedStates.getBoolean("alarmRunning", false);
@@ -433,12 +425,12 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	}
 
 	private void showDate() {
-		String formattedDate = sdfDate.format(this.alarmDateAndTime.getTime());
+		String formattedDate = AlarmClockUtilities.formatDate(this.alarmDateAndTime.getTimeInMillis());
 		this.tvAlarmDate.setText(formattedDate);
 	}
 
 	private void showTime() {
-		String formattedDate = this.sdfTime.format(this.alarmDateAndTime.getTime());
+		String formattedDate = AlarmClockUtilities.formatTimeNoSeconds(this.alarmDateAndTime.getTimeInMillis());
 		this.tvAlarmTime.setText(formattedDate);
 	}
 

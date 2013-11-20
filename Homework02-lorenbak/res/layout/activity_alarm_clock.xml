@@ -12,6 +12,14 @@
     tools:context=".AlarmClockActivity" >
 
     <TextView
+        android:id="@+id/txtAlarmSet"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/alarm_set_message"
+        android:textColor="#ffff0000"
+        android:textSize="12sp" />
+
+    <TextView
         android:id="@+id/txtTime"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

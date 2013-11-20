@@ -13,5 +13,8 @@
     <string name="alarm_stop">Stop</string>
     <string name="alarm_date_time_header">Alarm Date and Time</string>
     <string name="alarm_time_to_alarm">Time To Alarm</string>
+    <string name="alarm_set_message">Alarm set: Jan 3, 2014 11:23 AM</string>
+    <string name="alarm_set">"Alarm set: "</string>
+    <string name="today">"Alarm set: Today "</string>
 
 </resources>

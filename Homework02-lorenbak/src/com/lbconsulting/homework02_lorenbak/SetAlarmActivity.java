@@ -5,7 +5,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.DialogFragment;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -104,6 +108,40 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		// Notification that the activity will interact with the user
 		if (L)
 			Log.i(TAG, "SetAlarmActivity onResume");
+		// Get the between instance stored values
+		SharedPreferences storedStates = getSharedPreferences("AlarmClock", MODE_PRIVATE);
+
+		// Set application states
+		this.alarmRunning = storedStates.getBoolean("alarmRunning", false);
+		this.millsAlarmDateAndTime = storedStates.getLong("millsAlarmDateAndTime", -1);
+		this.alarmDateAndTime = Calendar.getInstance();
+
+		if (this.millsAlarmDateAndTime < 0) {
+			// first time run and millsAlarmDateAndTime set to it's default of -1		
+			this.millsAlarmDateAndTime = this.alarmDateAndTime.getTimeInMillis();
+		} else {
+			this.alarmDateAndTime.setTimeInMillis(this.millsAlarmDateAndTime);
+		}
+
+		this.year = alarmDateAndTime.get(Calendar.YEAR);
+		this.month = alarmDateAndTime.get(Calendar.MONTH);
+		this.day_of_month = alarmDateAndTime.get(Calendar.DAY_OF_MONTH);
+		this.hourOfDay = alarmDateAndTime.get(Calendar.HOUR_OF_DAY);
+		this.minute = alarmDateAndTime.get(Calendar.MINUTE);
+
+		this.setMinimumDatesAndTimes();
+
+		this.showDate();
+		this.showTime();
+
+		this.nextAlarmCountdownValueMills = this.millsAlarmDateAndTime - Calendar.getInstance().getTimeInMillis();
+		this.nextAlarmCountdownText = getAlarmCountdownText(this.nextAlarmCountdownValueMills);
+
+		if (this.alarmRunning) {
+			this.startTimer();
+		} else {
+			this.showCountdown(nextAlarmCountdownText);
+		}
 	}
 
 	@Override
@@ -227,42 +265,30 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 		this.tvAlarmTime = (TextView) findViewById(R.id.tvAlarmTime);
 		this.tvAlarmCountdown = (TextView) findViewById(R.id.tvAlarmCountdown);
 
-		// Get the between instance stored values
-		SharedPreferences storedStates = getSharedPreferences("AlarmClock", MODE_PRIVATE);
-
-		// Set application states
-		this.alarmRunning = storedStates.getBoolean("alarmRunning", false);
-		this.millsAlarmDateAndTime = storedStates.getLong("millsAlarmDateAndTime", -1);
-		this.alarmDateAndTime = Calendar.getInstance();
-
-		if (this.millsAlarmDateAndTime < 0) {
-			// first time run and millsAlarmDateAndTime set to it's default of -1		
-			this.millsAlarmDateAndTime = this.alarmDateAndTime.getTimeInMillis();
-		} else {
-			this.alarmDateAndTime.setTimeInMillis(this.millsAlarmDateAndTime);
-		}
-
-		this.year = alarmDateAndTime.get(Calendar.YEAR);
-		this.month = alarmDateAndTime.get(Calendar.MONTH);
-		this.day_of_month = alarmDateAndTime.get(Calendar.DAY_OF_MONTH);
-		this.hourOfDay = alarmDateAndTime.get(Calendar.HOUR_OF_DAY);
-		this.minute = alarmDateAndTime.get(Calendar.MINUTE);
-
-		this.setMinimumDatesAndTimes();
-
-		this.showDate();
-		this.showTime();
-
-		this.nextAlarmCountdownValueMills = this.millsAlarmDateAndTime - Calendar.getInstance().getTimeInMillis();
-		this.nextAlarmCountdownText = getAlarmCountdownText(this.nextAlarmCountdownValueMills);
-
-		if (this.alarmRunning) {
-			this.startTimer();
-		} else {
-			this.showCountdown(nextAlarmCountdownText);
-		}
-
 	} // End doCreate
+
+	public void SetAlarm()
+	{
+		//final Button button = buttons[2]; // replace with a button from your own UI
+		/*BroadcastReceiver receiver = new BroadcastReceiver() {
+
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				// TODO Auto-generated method stub
+				context.unregisterReceiver(this); // this == BroadcastReceiver, not Activity
+			}
+		};
+
+		this.registerReceiver(receiver, new IntentFilter("com.lbconsulting.homework02_lorenbak.AlarmClock.Alarm"));
+		*/
+		PendingIntent pintent = PendingIntent.getBroadcast(this, 0, new Intent(
+				"com.lbconsulting.homework02_lorenbak.AlarmClock.Alarm"), 0);
+		AlarmManager manager = (AlarmManager) (this.getSystemService(Context.ALARM_SERVICE));
+
+		// set alarm to fire 5 sec (1000*5) from now (SystemClock.elapsedRealtime())
+		/*manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + 1000 * 5, pintent);*/
+		manager.set(AlarmManager.RTC_WAKEUP, this.millsAlarmDateAndTime, pintent);
+	}
 
 	private void UpdateGUI() {
 		timerHandler.post(myRunnable);
@@ -299,9 +325,9 @@ public class SetAlarmActivity extends Activity implements DatePicker, TimePicker
 	}
 
 	private void startTimer() {
+		this.SetAlarm();
 		this.alarmRunning = true;
 		this.nextAlarmCountdownValueMills = this.millsAlarmDateAndTime - Calendar.getInstance().getTimeInMillis();
-		//nextAlarmCountdownValueMills -= 1000;
 		nextAlarmCountdownText = this.getAlarmCountdownText(nextAlarmCountdownValueMills);
 
 		myTimer = new Timer();

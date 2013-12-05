@@ -15,10 +15,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -248,8 +252,19 @@ public class AlarmClockActivity extends Activity {
 
 		this.parentView = (RelativeLayout) findViewById(R.id.layoutAlarmClockActivity);
 
+		BroadcastReceiver receiver = new BroadcastReceiver() {
+
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				// TODO Auto-generated method stub
+				context.unregisterReceiver(this); // this == BroadcastReceiver, not Activity
+			}
+		};
+
+		this.registerReceiver(receiver, new IntentFilter("com.lbconsulting.homework02_lorenbak.AlarmClock.Alarm"));
+
 		parentView.post(new Runnable() {
-			// Since some devices do not have a 
+			// Since some devices do not have a physical options button
 			// Expand the txtTime's TextView hit rectangle to cover the entire screen
 			// Post in the parent's message queue to make sure the parent
 			// lays out its children before you call getHitRect() for the child view
@@ -266,8 +281,8 @@ public class AlarmClockActivity extends Activity {
 				Rect parentArea = new Rect();
 				txtTime = (TextView) findViewById(R.id.txtTime);
 				txtTime.setTextColor(AlarmClockActivity.this.getResources().getColor(R.color.white));
-				/*Typeface face = Typeface.createFromAsset(getAssets(), "fonts/iceland.ttf");
-				txtTime.setTypeface(face);*/
+				Typeface face = Typeface.createFromAsset(getAssets(), "fonts/Iceland-Regular.ttf");
+				txtTime.setTypeface(face);
 
 				txtTime.setEnabled(true);
 				txtTime.setOnClickListener(new View.OnClickListener() {

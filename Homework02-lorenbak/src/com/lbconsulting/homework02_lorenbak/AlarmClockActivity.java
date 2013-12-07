@@ -15,6 +15,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.DialogFragment;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -25,6 +28,7 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Vibrator;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,17 +39,19 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class AlarmClockActivity extends Activity {
+import com.lbconsulting.homework02_lorenbak.TimePickerFragment.TimePicker;
+
+public class AlarmClockActivity extends Activity implements TimePicker {
 
 	// /////////////////////////////////////////////////////////////////////////////
-	// AlarmClockActivity variables
+	// AlarmClockActivity variables 
 	// /////////////////////////////////////////////////////////////////////////////
 
 	// String for logging the class name
 	public final String TAG = AlarmClockUtilities.TAG;
 	private final boolean L = AlarmClockUtilities.L; // enable Logging
 
-	private TextView txtTime = null;
+	private static TextView txtTime = null;
 	private RelativeLayout parentView = null;
 	private TextView txtAlarmSet = null;
 
@@ -53,9 +59,29 @@ public class AlarmClockActivity extends Activity {
 	private String nextTime = "";
 	private long nextTimeValue;
 
+	private boolean receiverRegistered = false;
+	private boolean alarmSet = false;
 	private boolean alarmRunning = false;
 	private long millsAlarmDateAndTime;
 	private Calendar alarmDateAndTime;
+	private Vibrator v;
+
+	private static int colorWhite;
+	private static int colorRed;
+
+	private int hourOfDay;
+	private int minute;
+	private int minYear;
+	private int minMonth;
+	private int minDay_of_month;
+	private int minHourOfDay;
+	private int minMinute;
+
+	private AlarmManager alManagerStart;
+	private PendingIntent pintent;
+	private BroadcastReceiver receiver;
+	private Handler stopAlarmHandler;
+	public static String ALARM_BROADCAST_INTENT = "com.lbconsulting.homework02_lorenbak.AlarmClock.Alarm";
 
 	// /////////////////////////////////////////////////////////////////////////////
 	// AlarmClockActivity skeleton
@@ -101,40 +127,12 @@ public class AlarmClockActivity extends Activity {
 
 		// Get the between instance stored values
 		SharedPreferences storedStates = getSharedPreferences("AlarmClock", MODE_PRIVATE);
+
 		// Set application states
-		alarmRunning = storedStates.getBoolean("alarmRunning", false);
-		millsAlarmDateAndTime = storedStates.getLong("millsAlarmDateAndTime", -1);
-		alarmDateAndTime = Calendar.getInstance();
-		if (millsAlarmDateAndTime < 0) {
-			// millsAlarmDateAndTime set to it's default of -1		
-			millsAlarmDateAndTime = alarmDateAndTime.getTimeInMillis();
-		} else {
-			alarmDateAndTime.setTimeInMillis(millsAlarmDateAndTime);
-		}
-
-		txtAlarmSet = (TextView) findViewById(R.id.txtAlarmSet);
-		if (alarmRunning) {
-			Calendar currentDateAndTime = Calendar.getInstance();
-			long currentDate = currentDateAndTime.getTimeInMillis();
-			String formattedCurrentDate = AlarmClockUtilities.formatDate(currentDate);
-
-			String formattedAlarmDate = AlarmClockUtilities.formatDate(millsAlarmDateAndTime);
-			String formattedAlarmDateAndTime = "";
-
-			if (formattedCurrentDate.equals(formattedAlarmDate)) {
-				formattedAlarmDateAndTime = getString(R.string.today);
-				formattedAlarmDateAndTime = formattedAlarmDateAndTime
-						+ AlarmClockUtilities.formatTimeNoSeconds(millsAlarmDateAndTime);
-			} else {
-				formattedAlarmDateAndTime = getString(R.string.alarm_set);
-				formattedAlarmDateAndTime = formattedAlarmDateAndTime
-						+ AlarmClockUtilities.formatDateAndTime(millsAlarmDateAndTime);
-			}
-
-			txtAlarmSet.setText(formattedAlarmDateAndTime);
-			txtAlarmSet.setVisibility(View.VISIBLE);
-		} else {
-			txtAlarmSet.setVisibility(View.GONE);
+		this.alarmSet = storedStates.getBoolean("alarmSet", false);
+		this.millsAlarmDateAndTime = storedStates.getLong("millsAlarmDateAndTime", -1);
+		if (this.alarmSet && millsAlarmDateAndTime > 0) {
+			this.SetAlarm();
 		}
 	}
 
@@ -146,9 +144,21 @@ public class AlarmClockActivity extends Activity {
 		if (L)
 			Log.i(TAG, "AlarmClockActivity onPause" + (isFinishing() ? " Finishing" : ""));
 
-		// Nothing to store!
-		// Store values between instances here
+		SharedPreferences preferences = getSharedPreferences("AlarmClock", MODE_PRIVATE);
+		SharedPreferences.Editor applicationStates = preferences.edit();
 
+		applicationStates.putBoolean("alarmSet", this.alarmSet);
+		applicationStates.putLong("millsAlarmDateAndTime", this.millsAlarmDateAndTime);
+
+		// Commit to storage
+		applicationStates.commit();
+
+		if (receiver != null && receiverRegistered) {
+			this.unregisterReceiver(receiver);
+			if (L)
+				Log.i(TAG, "AlarmClockActivity: receiver has been unregistered");
+			receiver = null;
+		}
 	}
 
 	@Override
@@ -172,18 +182,14 @@ public class AlarmClockActivity extends Activity {
 	@Override
 	protected void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
-
 		// Called when state should be saved
-
 		if (L)
 			Log.i(TAG, "AlarmClockActivity onSaveInstanceState");
-
 	}
 
 	@Override
 	protected void onRestoreInstanceState(Bundle savedState) {
 		super.onRestoreInstanceState(savedState);
-
 		// If we had state to restore, we note that in the log message
 		if (L)
 			Log.i(TAG, "AlarmClockActivity onRestoreInstanceState."
@@ -196,14 +202,12 @@ public class AlarmClockActivity extends Activity {
 	@Override
 	protected void onPostCreate(Bundle savedState) {
 		super.onPostCreate(savedState);
-		/* if (null != savedState) restoreState(savedState); */
 
 		// If we had state to restore, we note that in the log message
 		if (L) {
 			Log.i(TAG, "AlarmClockActivity onPostCreate"
 					+ (null == savedState ? " Restored state" : ""));
 		}
-
 	}
 
 	@Override
@@ -250,20 +254,26 @@ public class AlarmClockActivity extends Activity {
 		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_alarm_clock);
 
+		AlarmClockActivity.colorWhite = this.getResources().getColor(R.color.white);
+		AlarmClockActivity.colorRed = this.getResources().getColor(R.color.red);
+
+		AlarmClockActivity.txtTime = (TextView) findViewById(R.id.txtTime);
+		txtTime.setTextColor(AlarmClockActivity.colorWhite);
+		Typeface face = Typeface.createFromAsset(getAssets(), "fonts/Iceland-Regular.ttf");
+		txtTime.setTypeface(face);
+
+		//txtTime.setEnabled(true);
+
 		this.parentView = (RelativeLayout) findViewById(R.id.layoutAlarmClockActivity);
+		this.txtAlarmSet = (TextView) findViewById(R.id.txtAlarmSet);
+		this.txtAlarmSet.setTypeface(face);
+		this.txtAlarmSet.setText("Touch screen to set alarm.");
+		v = (Vibrator) getSystemService(AlarmClockActivity.VIBRATOR_SERVICE);
 
-		BroadcastReceiver receiver = new BroadcastReceiver() {
+		this.pintent = PendingIntent.getBroadcast(this, 0, new Intent(ALARM_BROADCAST_INTENT), 0);
+		this.alarmDateAndTime = Calendar.getInstance();
 
-			@Override
-			public void onReceive(Context context, Intent intent) {
-				// TODO Auto-generated method stub
-				context.unregisterReceiver(this); // this == BroadcastReceiver, not Activity
-			}
-		};
-
-		this.registerReceiver(receiver, new IntentFilter("com.lbconsulting.homework02_lorenbak.AlarmClock.Alarm"));
-
-		parentView.post(new Runnable() {
+		this.parentView.post(new Runnable() {
 			// Since some devices do not have a physical options button
 			// Expand the txtTime's TextView hit rectangle to cover the entire screen
 			// Post in the parent's message queue to make sure the parent
@@ -275,21 +285,16 @@ public class AlarmClockActivity extends Activity {
 				if (L)
 					Log.i(TAG, "AlarmClockActivity parentView.post Run");
 
-				// The bounds for the delegate view (an TextView
-				// in this example)
+				// The bounds for the delegate view (an TextView in this example)
 				Rect delegateArea = new Rect();
 				Rect parentArea = new Rect();
-				txtTime = (TextView) findViewById(R.id.txtTime);
-				txtTime.setTextColor(AlarmClockActivity.this.getResources().getColor(R.color.white));
-				Typeface face = Typeface.createFromAsset(getAssets(), "fonts/Iceland-Regular.ttf");
-				txtTime.setTypeface(face);
 
-				txtTime.setEnabled(true);
+				// set the alarm via clicking the screen
 				txtTime.setOnClickListener(new View.OnClickListener() {
 					@Override
 					public void onClick(View view) {
-						Intent setAlarmActivityIntent = new Intent(AlarmClockActivity.this, SetAlarmActivity.class);
-						AlarmClockActivity.this.startActivity(setAlarmActivityIntent);
+						DialogFragment newFragment = new TimePickerFragment();
+						newFragment.show(getFragmentManager(), "timePicker");
 					}
 				});
 
@@ -314,7 +319,11 @@ public class AlarmClockActivity extends Activity {
 				}
 
 				Timer clockTimer = new Timer();
-				nextTimeValue = Calendar.getInstance().getTimeInMillis();
+				/*nextTimeValue = Calendar.getInstance().getTimeInMillis();*/
+				nextTimeValue = System.currentTimeMillis();
+				nextTimeValue = nextTimeValue / 1000;
+				nextTimeValue = nextTimeValue * 1000;
+
 				nextTimeValue += 1000;
 				nextTime = getTime(nextTimeValue);
 
@@ -324,7 +333,6 @@ public class AlarmClockActivity extends Activity {
 						UpdateGUI();
 					}
 				}, 0, 1000);
-
 			}
 		});
 
@@ -338,6 +346,9 @@ public class AlarmClockActivity extends Activity {
 		public void run() {
 			// display the formatted time string
 			txtTime.setText(nextTime);
+			if (alarmRunning) {
+				v.vibrate(400);
+			}
 			// get ready to show the next time
 			nextTimeValue += 1000;
 			nextTime = getTime(nextTimeValue);
@@ -363,14 +374,8 @@ public class AlarmClockActivity extends Activity {
 		switch (item.getItemId()) {
 
 		case R.id.setAlarmMenu:
-			// TODO code menu editActiveListTitle
-			Intent setAlarmActivityIntent = new Intent(AlarmClockActivity.this, SetAlarmActivity.class);
-			/*
-			 * setAlarmActivityIntent.putExtra("key", value); //Optional
-			 * parameters
-			 */
-			AlarmClockActivity.this.startActivity(setAlarmActivityIntent);
-
+			DialogFragment newFragment = new TimePickerFragment();
+			newFragment.show(getFragmentManager(), "timePicker");
 			return true;
 
 		case R.id.action_settings:
@@ -384,4 +389,118 @@ public class AlarmClockActivity extends Activity {
 		}
 	}
 
+	private void SetAlarm() {
+		if (L)
+			Log.i(TAG, "AlarmClockActivity SetAlarm");
+		// cancel any previous set alarms
+		if (alManagerStart != null) {
+			if (L)
+				Log.i(TAG, "AlarmClockActivity previously set alarms cancled.");
+			alManagerStart.cancel(pintent);
+		}
+
+		// create a new BroadcastReceiver to catch the alarm
+		receiver = new BroadcastReceiver() {
+
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				TurnOnAlarm();
+				context.unregisterReceiver(receiver);
+				receiverRegistered = false;
+			}
+		};
+		// register the receiver ... set receiverRegistered flag
+		this.registerReceiver(receiver, new IntentFilter(ALARM_BROADCAST_INTENT));
+		this.receiverRegistered = true;
+
+		// set the AlarmManager
+		alManagerStart = (AlarmManager) (this.getSystemService(Context.ALARM_SERVICE));
+		alManagerStart.set(AlarmManager.RTC, millsAlarmDateAndTime, pintent);
+		this.alarmSet = true;
+
+		// display the alarm time
+		txtAlarmSet.setText("Alarm set for: " + AlarmClockUtilities.formatTimeNoSeconds(millsAlarmDateAndTime));
+		txtAlarmSet.setTextColor(AlarmClockActivity.colorRed);
+	}
+
+	public void TurnOnAlarm() {
+		if (L)
+			Log.i(TAG, "AlarmClockActivity TurnOnAlarm");
+		txtTime.setTextColor(colorRed);
+		alarmRunning = true;
+
+		// stop the running alarm in 5 seconds
+		stopAlarmHandler = new Handler();
+		stopAlarmHandler.postDelayed(TurnOffAlarm, 5000);
+	}
+
+	private Runnable TurnOffAlarm = new Runnable() {
+		@Override
+		public void run() {
+			if (L)
+				Log.i(TAG, "AlarmClockActivity TurnOffAlarm");
+			txtTime.setTextColor(colorWhite);
+			alarmRunning = false;
+			alarmSet = false;
+			txtAlarmSet.setText("Touch screen to set alarm.");
+			txtAlarmSet.setTextColor(AlarmClockActivity.colorWhite);
+			stopAlarmHandler = null;
+			alManagerStart = null;
+		}
+	};
+
+	@Override
+	public void onTimeSelected(Bundle timeBundle) {
+		this.hourOfDay = timeBundle.getInt("hourOfDay");
+		this.minute = timeBundle.getInt("minute");
+		this.setMinimumDatesAndTimes();
+
+		if (hourOfDay < minHourOfDay) {
+			this.hourOfDay = this.minHourOfDay;
+			this.minute = this.minMinute;
+			this.signalError();
+
+		} else if (minute < minMinute && hourOfDay == minHourOfDay) {
+			this.minute = this.minMinute;
+			this.signalError();
+
+		} else {
+
+			if (L)
+				Log.i(TAG, "AlarmClockActivity onTimeSelected");
+			this.setAlarmDateAndTime();
+			SetAlarm();
+		}
+	}
+
+	private void setAlarmDateAndTime() {
+		alarmDateAndTime.set(
+				this.minYear,
+				this.minMonth,
+				this.minDay_of_month,
+				this.hourOfDay,
+				this.minute,
+				0
+				);
+		this.millsAlarmDateAndTime = this.alarmDateAndTime.getTimeInMillis();
+		// round to a whole second
+		this.millsAlarmDateAndTime = this.millsAlarmDateAndTime / 1000;
+		this.millsAlarmDateAndTime = this.millsAlarmDateAndTime * 1000;
+	}
+
+	private void signalError() {
+		/*Vibrator v = (Vibrator) getSystemService(AlarmClockActivity.VIBRATOR_SERVICE);*/
+		// Vibrate for 500 milliseconds
+		v.vibrate(500);
+
+	}
+
+	private void setMinimumDatesAndTimes() {
+		Calendar calendarNow = Calendar.getInstance();
+		this.minYear = calendarNow.get(Calendar.YEAR);
+		this.minMonth = calendarNow.get(Calendar.MONTH);
+		this.minDay_of_month = calendarNow.get(Calendar.DAY_OF_MONTH);
+		this.minHourOfDay = calendarNow.get(Calendar.HOUR_OF_DAY);
+		this.minMinute = calendarNow.get(Calendar.MINUTE);
+	}
 }

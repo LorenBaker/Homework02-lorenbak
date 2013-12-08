@@ -34,7 +34,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.TouchDelegate;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.Window;
+import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -54,6 +56,7 @@ public class AlarmClockActivity extends Activity implements TimePicker {
 	private static TextView txtTime = null;
 	private RelativeLayout parentView = null;
 	private TextView txtAlarmSet = null;
+	private Button btnCancel = null;
 
 	final Handler timerHandler = new Handler();
 	private String nextTime = "";
@@ -262,12 +265,32 @@ public class AlarmClockActivity extends Activity implements TimePicker {
 		Typeface face = Typeface.createFromAsset(getAssets(), "fonts/Iceland-Regular.ttf");
 		txtTime.setTypeface(face);
 
-		//txtTime.setEnabled(true);
+		this.btnCancel = (Button) findViewById(R.id.btnCancel);
+		this.btnCancel.setTypeface(face);
+		btnCancel.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View view) {
+				// cancel alarm
+				if (L)
+					Log.i(TAG, "AlarmClockActivity btnCancel pressed.");
+				if (alManagerStart != null) {
+					alManagerStart.cancel(pintent);
+				}
+
+				if (receiver != null && receiverRegistered) {
+					getBaseContext().unregisterReceiver(receiver);
+					receiver = null;
+				}
+				StopAlarm();
+			}
+
+		});
 
 		this.parentView = (RelativeLayout) findViewById(R.id.layoutAlarmClockActivity);
 		this.txtAlarmSet = (TextView) findViewById(R.id.txtAlarmSet);
 		this.txtAlarmSet.setTypeface(face);
-		this.txtAlarmSet.setText("Touch screen to set alarm.");
+		this.txtAlarmSet.setText(R.string.touch_screen_to_set_alarm_);
 		v = (Vibrator) getSystemService(AlarmClockActivity.VIBRATOR_SERVICE);
 
 		this.pintent = PendingIntent.getBroadcast(this, 0, new Intent(ALARM_BROADCAST_INTENT), 0);
@@ -380,7 +403,7 @@ public class AlarmClockActivity extends Activity implements TimePicker {
 
 		case R.id.action_settings:
 			// TODO code menu masterListSettings
-			msg = "There are no Settings for this application.";
+			msg = getString(R.string.no_settings);
 			Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
 			return true;
 
@@ -421,6 +444,7 @@ public class AlarmClockActivity extends Activity implements TimePicker {
 		// display the alarm time
 		txtAlarmSet.setText("Alarm set for: " + AlarmClockUtilities.formatTimeNoSeconds(millsAlarmDateAndTime));
 		txtAlarmSet.setTextColor(AlarmClockActivity.colorRed);
+		btnCancel.setVisibility(View.VISIBLE);
 	}
 
 	public void TurnOnAlarm() {
@@ -439,15 +463,20 @@ public class AlarmClockActivity extends Activity implements TimePicker {
 		public void run() {
 			if (L)
 				Log.i(TAG, "AlarmClockActivity TurnOffAlarm");
-			txtTime.setTextColor(colorWhite);
-			alarmRunning = false;
-			alarmSet = false;
-			txtAlarmSet.setText("Touch screen to set alarm.");
-			txtAlarmSet.setTextColor(AlarmClockActivity.colorWhite);
-			stopAlarmHandler = null;
-			alManagerStart = null;
+			StopAlarm();
 		}
 	};
+
+	private void StopAlarm() {
+		txtTime.setTextColor(colorWhite);
+		btnCancel.setVisibility(View.GONE);
+		alarmRunning = false;
+		alarmSet = false;
+		txtAlarmSet.setText(R.string.touch_screen_to_set_alarm_);
+		txtAlarmSet.setTextColor(AlarmClockActivity.colorWhite);
+		stopAlarmHandler = null;
+		alManagerStart = null;
+	}
 
 	@Override
 	public void onTimeSelected(Bundle timeBundle) {

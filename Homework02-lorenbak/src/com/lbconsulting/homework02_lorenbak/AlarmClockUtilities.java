@@ -7,7 +7,7 @@ import java.util.TimeZone;
 public class AlarmClockUtilities {
 
 	public static final String TAG = "AlarmClock";
-	public static final Boolean L = true; // enable Logging
+	public static final Boolean L = false; // enable Logging
 
 	/**
 	 * Returns a formated String of the the given time as hours:minutes:seconds
